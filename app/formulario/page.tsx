@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface MedicamentoForm {
   nombre: string;
@@ -15,28 +16,21 @@ interface MedicamentoForm {
   codigo: string;
 }
 
-interface FormularioProps {
-  onSubmit: (data: MedicamentoForm) => void;
-  initialData?: MedicamentoForm;
-  modo?: "agregar" | "editar";
-}
+const modo: "agregar" | "editar" = "agregar";
 
-export default function Formulario({
-  onSubmit,
-  initialData,
-  modo = "agregar",
-}: FormularioProps) {
-  const [formData, setFormData] = useState<MedicamentoForm>(
-    initialData || {
-      nombre: "",
-      presentacion: "",
-      via: "",
-      lote: "",
-      caducidad: "",
-      stock: "",
-      codigo: "",
-    }
-  );
+const initialValues: MedicamentoForm = {
+  nombre: "",
+  presentacion: "",
+  via: "",
+  lote: "",
+  caducidad: "",
+  stock: "",
+  codigo: "",
+};
+
+export default function FormularioPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState<MedicamentoForm>(initialValues);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -45,9 +39,45 @@ export default function Formulario({
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const payload = { ...formData, stock: Number(formData.stock) };
+
+      if (Number.isNaN(payload.stock)) {
+        throw new Error("El stock debe ser un número válido.");
+      }
+
+      const response = await fetch("/api/medicamentos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("No se pudo guardar el medicamento.");
+      }
+
+      router.push("/medicamentos");
+      router.refresh();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error inesperado al guardar.";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -168,17 +198,28 @@ export default function Formulario({
         />
       </div>
 
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+          {error}
+        </p>
+      )}
+
       {/* Botón Submit */}
       <Button
         type="submit"
-        className="w-full bg-blue-950 text-white py-2 rounded-md shadow-md hover:bg-blue-900"
+        className="w-full bg-blue-950 text-white py-2 rounded-md shadow-md hover:bg-blue-900 disabled:opacity-60 disabled:cursor-not-allowed"
+        disabled={isSubmitting}
       >
-        {modo === "agregar" ? "Guardar medicamento" : "Actualizar medicamento"}
+        {isSubmitting
+          ? "Guardando..."
+          : modo === "agregar"
+          ? "Guardar medicamento"
+          : "Actualizar medicamento"}
       </Button>
       <Link href="/medicamentos">
-      <Button>
-        Cancelar
-      </Button>
+        <Button type="button" variant="secondary" className="w-full">
+          Cancelar
+        </Button>
       </Link>
     </form>
     </main>
