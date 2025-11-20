@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
+import { fetchWithOfflineSupport } from "@/lib/offline-sync";
 
 interface Medicamento {
   _id: string;
@@ -105,20 +106,26 @@ export default function DetallePage() {
         throw new Error("El stock debe ser un número válido.");
       }
 
-      const res = await fetch(`/api/medicamentos/${id}`, {
+      const res = await fetchWithOfflineSupport(`/api/medicamentos/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
+      const data = await res.json();
+
+      if (!res.ok && !data.offline) {
         throw new Error("No se pudo actualizar el medicamento.");
       }
 
-      const updated = await res.json();
-      setMedicamento(updated);
-      setIsEditing(false);
-      router.refresh();
+      if (data.offline) {
+        setError("Cambios guardados localmente. Se sincronizarán cuando haya conexión.");
+        setIsEditing(false);
+      } else {
+        setMedicamento(data);
+        setIsEditing(false);
+        router.refresh();
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Error inesperado al actualizar.";
@@ -139,12 +146,18 @@ export default function DetallePage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/medicamentos/${id}`, {
+      const res = await fetchWithOfflineSupport(`/api/medicamentos/${id}`, {
         method: "DELETE",
       });
 
-      if (!res.ok) {
+      const data = await res.json();
+
+      if (!res.ok && !data.offline) {
         throw new Error("No se pudo eliminar el medicamento.");
+      }
+
+      if (data.offline) {
+        alert("Eliminación guardada localmente. Se sincronizará cuando haya conexión.");
       }
 
       router.push("/medicamentos");

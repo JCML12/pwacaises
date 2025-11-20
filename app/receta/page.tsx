@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Header from "@/components/Header";
 import Link from "next/link";
+import { fetchWithOfflineSupport } from "@/lib/offline-sync";
 
 interface Medicamento {
     _id: string;
@@ -126,6 +127,26 @@ export default function RecetaPage() {
         setSuccess(null);
     };
 
+    const establecerCantidad = (_id: string, value: string) => {
+        const cantidad = Number(value);
+        setReceta((prev) =>
+            prev.map((item) => {
+                if (item._id !== _id) return item;
+                const medicamento = medicamentos.find((m) => m._id === _id);
+                if (!medicamento) return item;
+
+                if (Number.isNaN(cantidad) || cantidad < 1) {
+                    return { ...item, cantidad: 1 };
+                }
+
+                const limite = Math.min(medicamento.stock, cantidad);
+                return { ...item, cantidad: limite };
+            })
+        );
+        setError(null);
+        setSuccess(null);
+    };
+
     const totalMedicamentos = useMemo(
         () => receta.reduce((acc, item) => acc + item.cantidad, 0),
         [receta]
@@ -149,19 +170,24 @@ export default function RecetaPage() {
                 })),
             };
 
-            const res = await fetch("/api/receta", {
+            const res = await fetchWithOfflineSupport("/api/receta", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
 
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
+            const data = await res.json();
+
+            if (!res.ok && !data.offline) {
                 throw new Error(data.error || "No se pudo confirmar la receta.");
             }
 
             setReceta([]);
-            setSuccess("Receta confirmada y stock actualizado ✅");
+            if (data.offline) {
+                setSuccess("Receta guardada localmente. Se sincronizará cuando haya conexión ✅");
+            } else {
+                setSuccess("Receta confirmada y stock actualizado ✅");
+            }
             await cargarMedicamentos();
         } catch (err) {
             const message =
@@ -243,7 +269,7 @@ export default function RecetaPage() {
                                             <p className="text-sm text-gray-500">
                                                 Stock disponible: {stockDisponible}
                                             </p>
-                                            <div className="flex gap-2 mt-2">
+                                            <div className="flex flex-wrap gap-2 mt-2 items-center">
                                                 <Button
                                                     onClick={() => modificarCantidad(item._id, -1)}
                                                     className="bg-blue-950 text-white px-3"
@@ -257,6 +283,16 @@ export default function RecetaPage() {
                                                 >
                                                     +
                                                 </Button>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    max={stockDisponible}
+                                                    value={item.cantidad}
+                                                    onChange={(e) =>
+                                                        establecerCantidad(item._id, e.target.value)
+                                                    }
+                                                    className="w-24 border border-gray-300 rounded-md p-2 text-center focus:ring-2 focus:ring-blue-950 focus:outline-none"
+                                                />
                                                 <Button
                                                     onClick={() => quitarDeReceta(item._id)}
                                                     variant="outline"

@@ -1,18 +1,78 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"; // componentes de react para ui
-import { Button } from "@/components/ui/button"; //componentes de react para ui
-import Header from "@/components/Header"; //componente de header
-import Link from "next/link"; //importa link este nos deja navegar entre paginas
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Header from "@/components/Header";
+import Link from "next/link";
+import { connectDB } from "@/lib/mongodb";
+import MedicamentoModel from "@/models/Medicamento";
 
-export default function HomePage() {
-  const medicamentosPorCaducar = [
-    { nombre: "Paracetamol", fechaCaducidad: "2025-11-05" },
-    { nombre: "Ibuprofeno", fechaCaducidad: "2025-11-10" },
-  ];
+const DIAS_PARA_CADUCAR = 30;
+const STOCK_MINIMO = 5;
 
-  const medicamentosPorAcabarse = [
-    { nombre: "Amoxicilina", stock: 3 },
-    { nombre: "Omeprazol", stock: 2 },
-  ];
+interface ResumenCaducidad {
+  nombre: string;
+  fechaCaducidadISO: string;
+}
+
+interface ResumenStock {
+  nombre: string;
+  stock: number;
+}
+
+async function obtenerResumen(): Promise<{
+  medicamentosPorCaducar: ResumenCaducidad[];
+  medicamentosPorAcabarse: ResumenStock[];
+}> {
+  await connectDB();
+  const medicamentos = await MedicamentoModel.find().lean();
+
+  const hoy = new Date();
+  const limiteCaducidad = new Date();
+  limiteCaducidad.setDate(hoy.getDate() + DIAS_PARA_CADUCAR);
+
+  const porCaducar = [];
+  const pocoStock = [];
+
+  for (const med of medicamentos) {
+    const caducidadDate = med.caducidad ? new Date(med.caducidad) : null;
+
+    if (
+      caducidadDate &&
+      caducidadDate >= hoy &&
+      caducidadDate <= limiteCaducidad
+    ) {
+      porCaducar.push({
+        nombre: med.nombre,
+        fechaCaducidadISO: caducidadDate.toISOString(),
+      });
+    }
+
+    if (typeof med.stock === "number" && med.stock <= STOCK_MINIMO) {
+      pocoStock.push({ nombre: med.nombre, stock: med.stock });
+    }
+  }
+
+  return {
+    medicamentosPorCaducar: porCaducar.sort(
+      (a, b) =>
+        new Date(a.fechaCaducidadISO).getTime() -
+        new Date(b.fechaCaducidadISO).getTime()
+    ),
+    medicamentosPorAcabarse: pocoStock.sort((a, b) => a.stock - b.stock),
+  };
+}
+
+export default async function HomePage() {
+  const {
+    medicamentosPorCaducar,
+    medicamentosPorAcabarse,
+  } = await obtenerResumen();
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
 
   return (
     <main className="min-h-screen bg-gray-100 flex flex-col items-center  ">
@@ -52,11 +112,15 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc pl-4 text-gray-700">
-                {medicamentosPorCaducar.map((med, index) => (
-                  <li key={index}>
-                    {med.nombre} - Caduca: {med.fechaCaducidad}
-                  </li>
-                ))}
+                {medicamentosPorCaducar.length === 0 ? (
+                  <li>No hay medicamentos próximos a caducar.</li>
+                ) : (
+                  medicamentosPorCaducar.map((med, index) => (
+                    <li key={index}>
+                      {med.nombre} - Caduca: {formatDate(med.fechaCaducidadISO)}
+                    </li>
+                  ))
+                )}
               </ul>
             </CardContent>
           </Card>
@@ -68,11 +132,15 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc pl-4 text-gray-700">
-                {medicamentosPorAcabarse.map((med, index) => (
-                  <li key={index}>
-                    {med.nombre} - Stock: {med.stock}
-                  </li>
-                ))}
+                {medicamentosPorAcabarse.length === 0 ? (
+                  <li>No hay medicamentos con bajo stock.</li>
+                ) : (
+                  medicamentosPorAcabarse.map((med, index) => (
+                    <li key={index}>
+                      {med.nombre} - Stock: {med.stock}
+                    </li>
+                  ))
+                )}
               </ul>
             </CardContent>
           </Card>

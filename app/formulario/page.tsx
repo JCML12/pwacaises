@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { fetchWithOfflineSupport } from "@/lib/offline-sync";
 
 interface MedicamentoForm {
   nombre: string;
@@ -41,6 +42,7 @@ export default function FormularioPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +59,7 @@ export default function FormularioPage() {
         throw new Error("El stock debe ser un número válido.");
       }
 
-      const response = await fetch("/api/medicamentos", {
+      const response = await fetchWithOfflineSupport("/api/medicamentos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -65,12 +67,21 @@ export default function FormularioPage() {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
+      const data = await response.json();
+
+      if (!response.ok && !data.offline) {
         throw new Error("No se pudo guardar el medicamento.");
       }
 
-      router.push("/medicamentos");
-      router.refresh();
+      if (data.offline) {
+        setSuccess("Medicamento guardado localmente. Se sincronizará cuando haya conexión.");
+        setTimeout(() => {
+          router.push("/medicamentos");
+        }, 2000);
+      } else {
+        router.push("/medicamentos");
+        router.refresh();
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Error inesperado al guardar.";
@@ -201,6 +212,12 @@ export default function FormularioPage() {
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
           {error}
+        </p>
+      )}
+
+      {success && (
+        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md p-2">
+          {success}
         </p>
       )}
 
