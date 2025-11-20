@@ -1,55 +1,62 @@
-import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import { NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+import bcrypt from "bcryptjs";
+
+const SESSION_COOKIE = "auth_token";
+const SESSION_MAX_AGE = 60 * 60 * 4; // 4 horas
 
 export async function POST(request: Request) {
-  try {
-    const { usuario, password } = await request.json();
+  const { username, password } = await request.json();
 
-    if (!usuario || !password) {
-      return NextResponse.json(
-        { error: "Usuario y contraseña son requeridos" },
-        { status: 400 }
-      );
-    }
-
-    const client = await clientPromise;
-    const db = client.db(process.env.DATABASE_NAME);
-    
-  
-    const user = await db.collection('usuarios').findOne({ 
-      usuario: usuario 
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Credenciales inválidas" },
-        { status: 401 }
-      );
-    }
-
-   
-    const userWithPassword = user as any;
-    
-    if (userWithPassword.password !== password) {
-      return NextResponse.json(
-        { error: "Credenciales inválidas" },
-        { status: 401 }
-      );
-    }
-
-    // Response sin password
-    const { password: _, ...userWithoutPassword } = userWithPassword;
-
-    return NextResponse.json({
-      success: true,
-      user: userWithoutPassword
-    });
-
-  } catch (error) {
-    console.error('Error en login:', error);
+  if (!username || !password) {
     return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
+      { error: "Usuario y contraseña son obligatorios" },
+      { status: 400 }
     );
   }
+
+  await connectDB();
+
+  const user = await User.findOne({ username });
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "Credenciales inválidas" },
+      { status: 401 }
+    );
+  }
+
+  // 🔥 Comparación segura
+  const passwordMatch = await bcrypt.compare(password, user.password);
+
+  if (!passwordMatch) {
+    return NextResponse.json(
+      { error: "Credenciales inválidas" },
+      { status: 401 }
+    );
+  }
+
+  const response = NextResponse.json({
+    ok: true,
+    user: {
+      id: user._id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+    },
+  });
+
+  // 🔥 Cookie de sesión
+  response.cookies.set({
+    name: SESSION_COOKIE,
+    value: user._id.toString(),
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  });
+
+  return response;
 }
