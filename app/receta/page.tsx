@@ -44,6 +44,7 @@ export default function RecetaPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [busqueda, setBusqueda] = useState("");
 
     const cargarMedicamentos = useCallback(async () => {
         try {
@@ -152,6 +153,22 @@ export default function RecetaPage() {
         [receta]
     );
 
+    // Filtrar medicamentos basado en la búsqueda
+    const medicamentosFiltrados = useMemo(() => {
+        if (!busqueda.trim()) {
+            return medicamentos;
+        }
+
+        const termino = busqueda.toLowerCase();
+        return medicamentos.filter((med) => {
+            return (
+                med.nombre?.toLowerCase().includes(termino) ||
+                med.presentacion?.toLowerCase().includes(termino) ||
+                med.via?.toLowerCase().includes(termino)
+            );
+        });
+    }, [medicamentos, busqueda]);
+
     const confirmarReceta = async () => {
         if (receta.length === 0) {
             setError("Agrega medicamentos antes de confirmar.");
@@ -219,14 +236,33 @@ export default function RecetaPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl">
                 <section>
                     <h2 className="text-lg font-semibold text-blue-950 m-4">Medicamentos disponibles</h2>
+                    
+                    {/* Campo de búsqueda */}
+                    <div className="mx-4 mb-4">
+                        <input
+                            type="text"
+                            placeholder="Buscar medicamento por nombre, presentación o vía..."
+                            value={busqueda}
+                            onChange={(e) => setBusqueda(e.target.value)}
+                            className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-950 focus:outline-none shadow-sm"
+                        />
+                        {busqueda && (
+                            <p className="text-sm text-gray-600 mt-1">
+                                {medicamentosFiltrados.length} resultado{medicamentosFiltrados.length !== 1 ? "s" : ""} encontrado{medicamentosFiltrados.length !== 1 ? "s" : ""}
+                            </p>
+                        )}
+                    </div>
+
                     {isLoading ? (
                         <p className="text-gray-500 mx-4">Cargando medicamentos...</p>
                     ) : (
                         <div className="space-y-4">
-                            {medicamentos.length === 0 ? (
-                                <p className="text-gray-500 mx-4">No hay medicamentos registrados.</p>
+                            {medicamentosFiltrados.length === 0 ? (
+                                <p className="text-gray-500 mx-4">
+                                    {busqueda ? "No se encontraron medicamentos que coincidan con la búsqueda." : "No hay medicamentos registrados."}
+                                </p>
                             ) : (
-                                medicamentos.map((med) => (
+                                medicamentosFiltrados.map((med) => (
                                     <Card key={med._id} className="border m-2 border-gray-200 shadow-md">
                                         <CardHeader>
                                             <CardTitle className="text-blue-950">{med.nombre}</CardTitle>
