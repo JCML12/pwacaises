@@ -1,65 +1,94 @@
-import Image from "next/image";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"; // componentes de react para ui
+import { Button } from "@/components/ui/button"; //componentes de react para ui
+import Header from "@/components/Header"; //componente de header
+import Link from "next/link"; //importa link este nos deja navegar entre paginas
 
-export default function Home() {
+export default function HomePage() {
+  const medicamentosPorCaducar = [
+    { nombre: "Paracetamol", fechaCaducidad: "2025-11-05" },
+    { nombre: "Ibuprofeno", fechaCaducidad: "2025-11-10" },
+  ];
+
+  const medicamentosPorAcabarse = [
+    { nombre: "Amoxicilina", stock: 3 },
+    { nombre: "Omeprazol", stock: 2 },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="min-h-screen bg-gray-100 flex flex-col items-center  ">
+      <Header />
+      <h1 className="text-3xl font-bold text-center mb-6 p-6 text-blue-950">
+        Gestión de medicamentos
+      </h1>
+
+      {/* Botones principales */}
+      <div className="flex gap-4 mb-10">
+        <Link href="/formulario">
+        <Button className="bg-blue-950 text-white px-6 py-2 rounded-xl shadow-md hover:scale-105 transition">
+          Agregar medicamento
+        </Button>
+        </Link>
+        <Link href="/medicamentos">
+          <Button
+            variant="outline"
+            className="border-2 border-blue-950 text-blue-950 px-6 py-2 rounded-xl bg-transparent shadow-md hover:scale-105 transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Ver lista
+          </Button>
+        </Link>
+      </div>
+
+      {/* Resumen de medicamentos */}
+      <section className="w-full max-w-3xl">
+        <h3 className="text-xl font-semibold text-blue-950 mb-4 text-center">
+          Resumen de medicamentos
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Medicamentos por caducar */}
+          <Card className="shadow-md border m-2 border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-blue-950">Medicamentos por caducar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-4 text-gray-700">
+                {medicamentosPorCaducar.map((med, index) => (
+                  <li key={index}>
+                    {med.nombre} - Caduca: {med.fechaCaducidad}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/*Medicamentos por acabarse */}
+          <Card className="shadow-md border m-2 border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-blue-950">Medicamentos por acabarse</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-4 text-gray-700">
+                {medicamentosPorAcabarse.map((med, index) => (
+                  <li key={index}>
+                    {med.nombre} - Stock: {med.stock}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
-      </main>
-    </div>
+
+        {/* Botón de Receta */}
+        
+        <div className="flex justify-center mt-8 pb-6">
+          <Link href="/receta">
+          <Button className="bg-blue-950 text-white px-8 py-2 rounded-xl shadow-md hover:scale-105 transition">
+            Receta
+          </Button>
+          </Link>
+        </div>
+        
+      </section>
+    </main>
   );
 }

@@ -1,0 +1,50 @@
+{
+    "name": "Gestor Medicamentos PWA",
+    "short_name": "Gestor Medicamentos",
+    "description": "Sistema PWA para gestión y control de inventario de medicamentos hospitalarios",
+    "version": "1.0.0",
+    "version_name": "1.0.0",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": [
+        "window-controls-overlay"
+    ],
+    "orientation": "portrait-primary",
+    "theme_color": "#0066cc",
+    "background_color": "#ffffff",
+    "icons": [
+        {
+            "src": "icons/Logo-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+      
+        {
+            "src": "icons/Logo-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/Logo-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/Logo-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        
+        {
+            "src": "icons/Logo-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ]
+}
